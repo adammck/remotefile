@@ -10,6 +10,42 @@ This little Go library provides a common workflow:
 It's similar to Terraform's [remote state][rs], for arbitrary files.
 
 
+## Usage
+
+```go
+svc := s3.New(session.New())
+backend := s3be.New(svc, "my-bucket", "path/to/file.txt")
+rf := remotefile.New(backend)
+
+// download the file to tmp
+exists, err := rf.Get()
+if err != nil {
+  exit("error pulling file: %s", err)
+}
+
+// edit the file locally
+cmd := exec.Command("vim", rf.Path())
+cmd.Stdin = os.Stdin
+cmd.Stdout = os.Stdout
+cmd.Stderr = os.Stderr
+err = cmd.Run()
+if err != nil {
+  exit("vim returned an error: %s", err)
+}
+
+// upload the file
+err = f.Put()
+if err != nil {
+  exit("error pushing file: %s", err)
+}
+
+// delete the file (from the local filesystem)
+err = f.Close()
+if err != nil {
+  exit("error cleaning up: %s", err)
+}
+```
+
 ## License
 
 MIT.
