@@ -1,4 +1,4 @@
-package remotefile
+package iface
 
 import "io"
 

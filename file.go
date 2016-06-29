@@ -2,6 +2,7 @@ package remotefile
 
 import (
 	"fmt"
+	"github.com/adammck/remotefile/iface"
 	"io"
 	"math/rand"
 	"os"
@@ -16,11 +17,11 @@ func init() {
 }
 
 type File struct {
-	backend   Backend
+	backend   iface.Backend
 	Directory string
 }
 
-func New(backend Backend) *File {
+func New(backend iface.Backend) *File {
 	return &File{
 		backend:   backend,
 		Directory: temporaryDirectory(),

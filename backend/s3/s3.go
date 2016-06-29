@@ -5,6 +5,7 @@ import (
 	"io"
 	"path"
 
+	"github.com/adammck/remotefile/iface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -80,3 +81,6 @@ func isNoSuchKey(err error) bool {
 
 	return awsErr.Code() == "NoSuchKey"
 }
+
+// Ensure that S3 implements the Backend interface.
+var _ iface.Backend = (*S3)(nil)
