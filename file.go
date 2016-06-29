@@ -1,14 +1,17 @@
 package remotefile
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
-	"github.com/adammck/remotefile/iface"
-	"github.com/blang/vfs"
 	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/adammck/remotefile/iface"
+	"github.com/blang/vfs"
 )
 
 var r *rand.Rand
@@ -78,6 +81,7 @@ func (r *File) Put() error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	return r.backend.Put(f)
 }
@@ -101,4 +105,23 @@ func temporaryDirectory() string {
 func (r *File) pathExists(p string) bool {
 	_, err := r.fs.Stat(p)
 	return err == nil
+}
+
+// Checksum returns the hex-encoded SHA1 checksum of the contents of the
+// temporary file. This is used to determine whether the file has changed.
+func (r *File) Checksum() (string, error) {
+
+	f, err := r.fs.OpenFile(r.Path(), os.O_RDONLY, 0600)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha1.New()
+	_, err = io.Copy(h, f)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
