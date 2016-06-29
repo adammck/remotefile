@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFile_Get(t *testing.T) {
-	f, backend, tmpDir, fs := newFile()
+func TestFileGet(t *testing.T) {
+	f, backend, tmpDir, fs := newFile(nil)
 
 	// When remote file doesn't exist...
 
@@ -39,7 +39,7 @@ func TestFile_Get(t *testing.T) {
 
 	// When remote file does exist...
 
-	backend.RemoteFile = []byte("hello, world")
+	backend.RemoteData = []byte("hello, world")
 	exists, err = f.Get()
 	assert.NoError(t, err)
 	assert.True(t, exists)
@@ -52,12 +52,41 @@ func TestFile_Get(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error when reading local file, got %q", err)
 	}
-	assert.Equal(t, backend.RemoteFile, contents)
+	assert.Equal(t, backend.RemoteData, contents)
+}
+
+func TestFilePut(t *testing.T) {
+	f, backend, _, _ := newFile([]byte("remote data"))
+
+	// When local file doesn't exist, the remote should be deleted.
+
+	err := f.Put()
+	assert.NoError(t, err)
+	assert.Nil(t, backend.RemoteData)
+
+	// When local file exists, remote should be updated.
+
+	f, backend, _, fs := newFile(nil)
+	localData := []byte("hello, world")
+
+	err = vfs.MkdirAll(fs, f.Directory, 0700)
+	if err != nil {
+		t.Fatalf("expected no error when creating tmp dir, got %q", err)
+	}
+
+	err = writeFile(fs, f.Path(), localData, 0600)
+	if err != nil {
+		t.Fatalf("expected no error when writing local file, got %q", err)
+	}
+
+	err = f.Put()
+	assert.NoError(t, err)
+	assert.Equal(t, localData, backend.RemoteData)
 }
 
 // ----
 
-func newFile() (*File, *MockBackend, string, vfs.Filesystem) {
+func newFile(remoteData []byte) (*File, *MockBackend, string, vfs.Filesystem) {
 	backend := NewMockBackend("test.txt")
 	tmpDir := "/tmp/a/b/c"
 	fs := memfs.Create()
@@ -69,34 +98,57 @@ func newFile() (*File, *MockBackend, string, vfs.Filesystem) {
 	}, backend, tmpDir, fs
 }
 
+// port of ioutil.Writefile for vfs
+func writeFile(fs vfs.Filesystem, filename string, data []byte, perm os.FileMode) error {
+	f, err := fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	n, err := f.Write(data)
+	if err == nil && n < len(data) {
+		err = io.ErrShortWrite
+	}
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
+	return err
+}
+
 // ----
 
 type MockBackend struct {
 	fn         string
-	RemoteFile []byte
+	RemoteData []byte
 }
 
 func NewMockBackend(fn string) *MockBackend {
 	return &MockBackend{
 		fn:         fn,
-		RemoteFile: nil,
+		RemoteData: nil,
 	}
 }
 
 func (m *MockBackend) Get() (bool, io.Reader, error) {
-	if m.RemoteFile == nil {
+	if m.RemoteData == nil {
 		return false, bytes.NewReader(nil), nil
 	}
 
-	return true, bytes.NewReader(m.RemoteFile), nil
+	return true, bytes.NewReader(m.RemoteData), nil
 }
 
 func (m *MockBackend) Put(r io.ReadSeeker) error {
-	panic("MockBackend.Put: not implemented")
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	m.RemoteData = b
+	return nil
 }
 
 func (m *MockBackend) Delete() error {
-	panic("MockBackend.Delete: not implemented")
+	m.RemoteData = nil
+	return nil
 }
 
 func (m *MockBackend) Filename() string {

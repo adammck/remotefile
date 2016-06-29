@@ -68,7 +68,7 @@ func (r *File) Put() error {
 	// If the file was deleted, remove it from the remote.
 	// TODO: What if the remote already doesn't exist?
 
-	if !pathExists(r.Path()) {
+	if !r.pathExists(r.Path()) {
 		return r.backend.Delete()
 	}
 
@@ -98,7 +98,7 @@ func temporaryDirectory() string {
 }
 
 // pathExists returns true if the given path exists.
-func pathExists(p string) bool {
-	_, err := os.Stat(p)
+func (r *File) pathExists(p string) bool {
+	_, err := r.fs.Stat(p)
 	return err == nil
 }
