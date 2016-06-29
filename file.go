@@ -3,6 +3,7 @@ package remotefile
 import (
 	"fmt"
 	"github.com/adammck/remotefile/iface"
+	"github.com/blang/vfs"
 	"io"
 	"math/rand"
 	"os"
@@ -19,44 +20,46 @@ func init() {
 type File struct {
 	backend   iface.Backend
 	Directory string
+	fs        vfs.Filesystem
 }
 
 func New(backend iface.Backend) *File {
 	return &File{
 		backend:   backend,
 		Directory: temporaryDirectory(),
+		fs:        vfs.OS(),
 	}
 }
 
-func (r *File) Get() (bool, error) {
+func (r *File) Get() (exists bool, err error) {
 
 	// Create the temporary directory to download the file into. Even if the
 	// download fails, this must exist for the local file to be written into.
 
-	err := os.MkdirAll(r.Directory, 0700)
+	err = vfs.MkdirAll(r.fs, r.Directory, 0700)
 	if err != nil {
-		return false, err
+		return
 	}
 
 	exists, rr, err := r.backend.Get()
 	if !exists || err != nil {
-		return exists, err
+		return
 	}
 
 	// Download the contents of the remote file into the local file.
 
-	f, err := os.Create(r.Path())
-	defer f.Close()
+	f, err := r.fs.OpenFile(r.Path(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return false, err
+		return
 	}
+	defer f.Close()
 
 	_, err = io.Copy(f, rr)
 	if err != nil {
-		return false, err
+		return
 	}
 
-	return true, nil
+	return
 }
 
 // Put uploads the temporary file to the remote.
@@ -71,7 +74,7 @@ func (r *File) Put() error {
 
 	// Upload the contents of the local file to the remote.
 
-	f, err := os.Open(r.Path())
+	f, err := r.fs.OpenFile(r.Path(), os.O_RDONLY, 0600)
 	if err != nil {
 		return err
 	}
@@ -87,7 +90,7 @@ func (r *File) Path() string {
 
 // Close deletes the temporary files and directories created by Get.
 func (r *File) Close() error {
-	return os.RemoveAll(r.Directory)
+	return vfs.RemoveAll(r.fs, r.Directory)
 }
 
 func temporaryDirectory() string {
