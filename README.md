@@ -1,4 +1,6 @@
 # Remote File
+[![GoDoc](https://godoc.org/github.com/adammck/remotefile?status.svg)](https://godoc.org/github.com/adammck/remotefile)
+[![Build Status](https://travis-ci.org/adammck/remotefile.svg?branch=master)](https://travis-ci.org/adammck/remotefile)
 
 This little Go library provides a common workflow:
 
