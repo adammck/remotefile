@@ -109,7 +109,11 @@ func (r *File) pathExists(p string) bool {
 
 // Checksum returns the hex-encoded SHA1 checksum of the contents of the
 // temporary file. This is used to determine whether the file has changed.
+// Returns an empty string but no error if the file doesn't exist.
 func (r *File) Checksum() (string, error) {
+	if !r.pathExists(r.Path()) {
+		return "", nil
+	}
 
 	f, err := r.fs.OpenFile(r.Path(), os.O_RDONLY, 0600)
 	if err != nil {

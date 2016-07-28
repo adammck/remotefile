@@ -93,12 +93,16 @@ func TestFileChecksum(t *testing.T) {
 		t.Fatalf("expected no error when creating tmp dir, got %q", err)
 	}
 
+	sum, err := f.Checksum()
+	assert.NoError(t, err)
+	assert.Equal(t, "", sum)
+
 	err = writeFile(fs, f.Path(), local, 0600)
 	if err != nil {
 		t.Fatalf("expected no error when writing local file, got %q", err)
 	}
 
-	sum, err := f.Checksum()
+	sum, err = f.Checksum()
 	assert.NoError(t, err)
 	assert.Equal(t, "2e3b1d2f993e7df69e9fb761f0b9434bfec2e44c", sum)
 }
