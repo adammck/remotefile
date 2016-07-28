@@ -48,6 +48,21 @@ if err != nil {
 }
 ```
 
+## Testing
+
+To run integration tests:
+
+```bash
+export INTEGRATION_TESTS=1
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+export GOOGLE_PROJECT=
+go test -v ./backend/...
+```
+
+These aren't run by Travis, so please be sure to run them before merging changes
+to master. They also cost (a miniscule amount of) money, because they create and
+modify remote resources, so be sure to clean up manually when they fail.
+
 ## License
 
 MIT.
