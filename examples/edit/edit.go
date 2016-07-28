@@ -8,9 +8,17 @@ import (
 
 	"github.com/adammck/remotefile"
 	s3be "github.com/adammck/remotefile/backend/s3"
+	gcsbe "github.com/adammck/remotefile/backend/gcs"
 	"github.com/adammck/remotefile/iface"
+
+	// for S3 backend
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+
+	// for GCS backend
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	storage "google.golang.org/api/storage/v1"
 )
 
 func main() {
@@ -29,6 +37,15 @@ func main() {
 		// The S3 backend is configured via ENV
 		svc := s3.New(session.New())
 		be = s3be.New(svc, u.Host, u.Path)
+
+	case "gcs":
+		// See: https://godoc.org/golang.org/x/oauth2/google#DefaultClient
+		client, err := google.DefaultClient(oauth2.NoContext, storage.DevstorageFullControlScope)
+		checkErr(err)
+
+		be, err = gcsbe.New(client, u.Host, u.Path)
+		checkErr(err)
+
 	default:
 		checkErr(fmt.Errorf("invalid scheme: %s", u.Scheme))
 	}
