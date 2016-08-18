@@ -1,13 +1,12 @@
 package remotefile
 
 import (
-	"bytes"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/adammck/remotefile/iface"
+	mockbackend "github.com/adammck/remotefile/backend/mock"
 	"github.com/blang/vfs"
 	"github.com/blang/vfs/memfs"
 	"github.com/stretchr/testify/assert"
@@ -109,8 +108,8 @@ func TestFileChecksum(t *testing.T) {
 
 // ----
 
-func newFile(remoteData []byte) (*File, *MockBackend, string, vfs.Filesystem) {
-	backend := NewMockBackend("test.txt")
+func newFile(remoteData []byte) (*File, *mockbackend.Mock, string, vfs.Filesystem) {
+	backend := mockbackend.New("test.txt")
 	tmpDir := "/tmp/a/b/c"
 	fs := memfs.Create()
 
@@ -136,47 +135,3 @@ func writeFile(fs vfs.Filesystem, filename string, data []byte, perm os.FileMode
 	}
 	return err
 }
-
-// ----
-
-type MockBackend struct {
-	fn         string
-	RemoteData []byte
-}
-
-func NewMockBackend(fn string) *MockBackend {
-	return &MockBackend{
-		fn:         fn,
-		RemoteData: nil,
-	}
-}
-
-func (m *MockBackend) Get() (bool, io.Reader, error) {
-	if m.RemoteData == nil {
-		return false, bytes.NewReader(nil), nil
-	}
-
-	return true, bytes.NewReader(m.RemoteData), nil
-}
-
-func (m *MockBackend) Put(r io.ReadSeeker) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-
-	m.RemoteData = b
-	return nil
-}
-
-func (m *MockBackend) Delete() error {
-	m.RemoteData = nil
-	return nil
-}
-
-func (m *MockBackend) Filename() string {
-	return m.fn
-}
-
-// Ensure that MockBackend implements the Backend interface.
-var _ iface.Backend = (*MockBackend)(nil)
