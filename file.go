@@ -27,10 +27,14 @@ type File struct {
 }
 
 func New(backend iface.Backend) *File {
+	return NewWithFilesystem(backend, vfs.OS())
+}
+
+func NewWithFilesystem(backend iface.Backend, fs vfs.Filesystem) *File {
 	return &File{
 		backend:   backend,
 		Directory: temporaryDirectory(),
-		fs:        vfs.OS(),
+		fs:        fs,
 	}
 }
 
